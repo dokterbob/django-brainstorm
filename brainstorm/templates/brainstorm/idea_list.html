@@ -8,6 +8,9 @@
     {% endfor %}
     </ul>
 </div>
+
+{% include "brainstorm/idea_form.html" %}
+
 <div id="pagination">
     {% if ideas.has_previous %}
         <a href="?page={{ideas.previous_page_number}}">previous</a>
