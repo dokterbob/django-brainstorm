@@ -12,19 +12,26 @@ from django.conf import settings
 from brainstorm.models import Subsite, Idea, Vote
 
 def idea_list(request, slug, ordering='-total_upvotes'):
+    subsite = get_object_or_404(Subsite, pk=slug)
+
     ordering_db = {'most_popular': '-score',
                    'latest': '-submit_date'}[ordering]
-    qs = Idea.objects.with_user_vote(request.user).filter(subsite__slug=slug).select_related().order_by(ordering_db)
+    qs = Idea.objects.with_user_vote(request.user).filter(subsite=subsite).select_related().order_by(ordering_db)
     if hasattr(qs, '_gatekeeper'):
         qs = qs.approved()
     return list_detail.object_list(request, queryset=qs,
-        extra_context={'ordering': ordering, 'subsite':slug}, paginate_by=10,
+        extra_context={'ordering': ordering, 'subsite': subsite,
+                       'user_can_post': subsite.user_can_post(request.user)},
+        paginate_by=10,
         template_object_name='idea')
 
 def idea_detail(request, slug, id):
-    idea = get_object_or_404(Idea.objects.with_user_vote(request.user), pk=id, subsite__slug=slug)
+    subsite = get_object_or_404(Subsite, pk=slug)
+
+    idea = get_object_or_404(Idea.objects.with_user_vote(request.user).filter(subsite=subsite), pk=id)
     return render_to_response('brainstorm/idea_detail.html',
-                              {'idea': idea},
+                              {'idea': idea, 'subsite': subsite,
+                               'user_can_post': subsite.user_can_post(request.user)},
                               context_instance=RequestContext(request))
 
 @require_POST
